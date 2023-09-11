@@ -36,45 +36,51 @@ they are sent to each member of the group via websockets.
 
 ## User Interface
 
-user types a message
-  user knows all recipients of the message
-message is signed
-for each recip:
-  message is encrypted
-  message is sent:
-    message is serialized
-    serialized message is split into packets
-    packets are sent to recipient
-      WEB - publish endpoint with public key as user identifier
-      UDP - udp connection via host:port
-user is notified of successful sends
+This is just here to remind myself of the intended architecture.
+If you're reading this, you should probably think about spending your
+time better.
 
-User listens to messages
-  set up a goroutine for each member of the group
-    listens to a channel associated with the group member
-    knows the metadata of the user associated to the routine
-    has a mutex for printing to stdOut so that we don't mix messages
-    
-    deserializes each packet
-    combines all packets if there are many
-    decrypts the AES key
-    decrypts the message
-    checks the signature
-    prints the message to stdout
-  Set up a multiplexer goroutine to assign messages to the listeners
+```text
+  user types a message
+    user knows all recipients of the message
+    message is signed
+    for each recip:
+      message is encrypted
+      message is sent:
+        message is serialized (message -> pbmessage)
+        serialized message (pbmessage) is split into packets
+        packets are sent to recipient
+          WEB - publish endpoint with public key as user identifier
+          UDP - udp connection via host:port
+    user is notified of successful sends
 
-  Listen loop:
+  User listens to messages
+    set up a goroutine for each member of the group
+      listens to a channel associated with the group member
+      knows the metadata of the user associated to the routine
+      has a mutex for printing to stdOut so that we don't mix messages
+      
+      deserializes each packet
+      combines all packets if there are many
+      decrypts the AES key
+      decrypts the message
+      checks the signature
+      prints the message to stdout
+    Set up a multiplexer goroutine to assign messages to the listeners
+
+    Listen loop:
+      WEB
+        register with the server as a consumer and establish websocket
+        messages from websocket are sent to multiplexer
+      UDP
+        Listen for UDP messages on a given port
+        messages from connections are sent to multiplexer
+    multiplexer
+      looks at origin (public key) and assigns to the right listener
+      no message validation here
+
+  Transports
     WEB
-      register with the server as a consumer and establish websocket
-      messages from websocket are sent to multiplexer
-    UDP
-      Listen for UDP messages on a given port
-      messages from connections are sent to multiplexer
-  multiplexer
-    looks at origin (public key) and assigns to the right listener
-    no message validation here
 
-Transports
-  WEB
-    
-  UDP
+    UDP
+```
