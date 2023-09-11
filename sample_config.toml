@@ -1,0 +1,63 @@
+# Use a file like this to manually configure your producer and consumer settings.
+
+title = "Example message config"
+
+private_key_file = "YOUR_HOME_DIRECTORY_GOES_HERE/.udpm/udpm_id_rsa"
+
+# The 'listen' table configures where your machine will be
+# listening for messages in UDP mode.
+
+[listen]
+# Others will have to reach you at the external host:port
+external_host = "something.example.com"
+external_port = "1053"
+# This is the location of your machine on your internal network
+internal_host = "10.0.0.176"
+internal_port = "1053"
+
+# Configure each group below. Groups must have unique identifiers
+
+# Choosing produce -g group_one will send messages to two recipients
+[group_one]
+name = "Group One"
+[[group_one.users]]
+host = "10.0.0.176"
+port = "1053"
+key = "some_key"
+[[group_one.users]]
+host = "aim.andrewcandela.com:1053"
+key = "some_other_key"
+
+# Choosing produce -g group_two will send messages to one recipient
+[group_two]
+name = "Group Two"
+[[group_two.users]]
+name = "Andy"
+host = "10.0.0.176"
+port = "1053"
+key = '''
+-----BEGIN RSA PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0eirTqkgbT6y6wV8T6x+
+uEDmUgCMy+6jYI1bi8R0L7UN/7I4TXlcdoQYTdLTdW2OsgD2NocIxH1BdxYtjArh
+zcJ7bEVooF2Gunwi+KIowayg6aW/xv9vuXz2wRRXgKMT5kjzwRAL1+Y8CDafJGOr
+yM8D2W/1lrzutLwOz4mudORyosbqfBen8PdiUcsXumzXbU/dMDhwVk92Hz7Te+La
+323znvXALSvGh7woCtRuo6q7iKfyPMJlDRwsBQQXiXslCROQuBh6xx7ceIfZyZSO
+OkqezsLzGytxrzdRpFmaIVYPQh4PeAtGbLMWtFUhOOa2cS1e4gyBHE5mD0cqXOoZ
+7QIDAQAB
+-----END RSA PUBLIC KEY-----
+'''
+[[group_two.users]]
+name = "Bill"
+host = "10.0.0.176"
+port = "1055"
+key = '''
+-----BEGIN RSA PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0eirTqkgbT6y6wV8T6x+
+uEDmUgCMy+6jYI1bi8R0L7UN/7I4TXlcdoQYTdLTdW2OsgD2NocIxH1BdxYtjArh
+zcJ7bEVooF2Gunwi+KIowayg6aW/xv9vuXz2wRRXgKMT5kjzwRAL1+Y8CDafJGOr
+yM8D2W/1lrzutLwOz4mudORyosbqfBen8PdiUcsXumzXbU/dMDhwVk92Hz7Te+La
+323znvXALSvGh7woCtRuo6q7iKfyPMJlDRwsBQQXiXslCROQuBh6xx7ceIfZyZSO
+OkqezsLzGytxrzdRpFmaIVYPQh4PeAtGbLMWtFUhOOa2cS1e4gyBHE5mD0cqXOoZ
+7QIDAQAB
+-----END RSA PUBLIC KEY-----
+'''
