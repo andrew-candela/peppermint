@@ -1,0 +1,16 @@
+syntax = "proto3";
+package internal;
+
+option go_package = "github.com/andrew-candela/udpm/internal";
+
+message PBMessage {
+  bytes content = 1;
+  bytes signature = 2;
+  bytes aes_key = 3;
+  bytes public_key = 4;
+}
+
+message PBGram {
+  bytes content = 1;
+  bool expect_more = 2;
+}

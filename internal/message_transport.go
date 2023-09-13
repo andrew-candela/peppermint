@@ -4,6 +4,8 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"sync"
+
+	"github.com/chzyer/readline"
 )
 
 const (
@@ -22,7 +24,7 @@ type Messanger struct {
 	wait_group  *sync.WaitGroup
 	private_key *rsa.PrivateKey
 	port        string
-	transport   *MessageTransport
+	transport   MessageTransport
 	write_mutex *sync.Mutex
 }
 
@@ -46,15 +48,24 @@ func (udpt *UDPTransport) Writer(friend *FriendDetail, content []byte) error {
 }
 
 // Read incoming messages from the open UDP port
-func (udpt *UDPTransport) Reader(*[]FriendDetail) {}
+func (udpt *UDPTransport) Reader(*[]FriendDetail) {
+	// UDPListen()
+}
 
 // Holds details about who you will be sending/receiving messages from.
 type FriendDetail struct {
-	host            string
-	port            string
-	public_key      *rsa.PublicKey
-	message_channel chan *Message
-	name            string
+	host             string
+	port             string
+	public_key       *rsa.PublicKey
+	message_channel  chan *Message
+	inbound_messages chan *[]byte
+	name             string
+}
+
+// Used when reading messages.
+// Use the friend public key as an identifier
+// in a map pointing to the FriendDetail
+type FriendMap struct {
 }
 
 // Publish a message by sending it to all the channels associated with recips
@@ -71,14 +82,31 @@ func (udpm *Messanger) Publish(message_text string) {
 	udpm.wait_group.Wait()
 }
 
+// Readline loop collecting input from user.
+// Sends messages with messanger.Publish() for processing
+func (udpm *Messanger) WriteLoop() {
+	rl, err := readline.New("> ")
+	if err != nil {
+		panic(err)
+	}
+	defer rl.Close()
+
+	for {
+		line, err := rl.Readline()
+		if err != nil { // io.EOF
+			break
+		}
+		udpm.Publish(line)
+	}
+}
+
 // Listen on a UDP port and wait for messages to come in
-func (udpm *Messanger) Listen() {
-	LogWithFileName(fmt.Sprintf("Starting listener on port:%v", udpm.port))
-	incoming_message_channel := make(chan RawUDPMessage)
+func (udpm *Messanger) ReadLoop() {
 	// start the message handler
-	go UDPMessageHandler(incoming_message_channel)
-	//start the 'server'
-	UDPListen(udpm.port, incoming_message_channel)
+	for _, friend := range udpm.recipients {
+		go UDPMessageHandler(friend.inbound_messages)
+	}
+	// udpm.transport.Reader()
 }
 
 // Instantiates a UDPMessanger.
@@ -95,11 +123,12 @@ func ConfigureMessanger(config *TransportConfig, transport_type TRANSPORT_TYPE) 
 	}
 	for _, recip := range config.Users {
 		friends = append(friends, FriendDetail{
-			host:            recip.Host,
-			port:            recip.Port,
-			public_key:      ParsePublicKey(recip.Key),
-			message_channel: make(chan *Message),
-			name:            recip.Name,
+			host:             recip.Host,
+			port:             recip.Port,
+			public_key:       ParsePublicKey([]byte(recip.Key)),
+			message_channel:  make(chan *Message),
+			inbound_messages: make(chan *[]byte),
+			name:             recip.Name,
 		})
 	}
 	wg := sync.WaitGroup{}
@@ -108,7 +137,7 @@ func ConfigureMessanger(config *TransportConfig, transport_type TRANSPORT_TYPE) 
 		wait_group:  &wg,
 		private_key: config.PrivateKey,
 		port:        config.Port,
-		transport:   &transport,
+		transport:   transport,
 		write_mutex: write_mutex,
 	}
 }
@@ -116,7 +145,7 @@ func ConfigureMessanger(config *TransportConfig, transport_type TRANSPORT_TYPE) 
 // Sets up goroutines for each recipient and then returns.
 func (udpm *Messanger) OutboundConnect() {
 	for i := range udpm.recipients {
-		go sendAndReport(udpm.wait_group, &udpm.recipients[i], *udpm.transport, udpm.write_mutex)
+		go sendAndReport(udpm.wait_group, &udpm.recipients[i], udpm.transport, udpm.write_mutex)
 	}
 }
 
