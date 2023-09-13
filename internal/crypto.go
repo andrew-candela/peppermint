@@ -146,8 +146,10 @@ func ReadExistingKey(keyFile string) *rsa.PrivateKey {
 	return key.(*rsa.PrivateKey)
 }
 
-func ParsePublicKey(keyString string) *rsa.PublicKey {
-	pKeyBlock, _ := pem.Decode([]byte(keyString))
+// Returns a public RSA key from bytes.
+// This is the inverse of PublicKeyToBytes
+func ParsePublicKey(keyString []byte) *rsa.PublicKey {
+	pKeyBlock, _ := pem.Decode(keyString)
 	if pKeyBlock == nil {
 		fmt.Println("Error in pem.Decode, keyblock is nil...")
 		panic("Oops")
@@ -205,4 +207,12 @@ func GenerateRandomKey() *rsa.PrivateKey {
 	k, err := rsa.GenerateKey(rand.Reader, 2048)
 	CheckErrFatal(err)
 	return k
+}
+
+// Converts a public RSA key into bytes.
+// This is the inverse of ParsePublicKey.
+func PublicKeyToBytes(key *rsa.PublicKey) []byte {
+	pubKeyBytes, err := x509.MarshalPKIXPublicKey(&key)
+	CheckErrFatal(err)
+	return pubKeyBytes
 }
