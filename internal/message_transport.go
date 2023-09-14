@@ -23,6 +23,7 @@ type Messanger struct {
 	recipients  []FriendDetail
 	wait_group  *sync.WaitGroup
 	private_key *rsa.PrivateKey
+	public_key  []byte
 	port        string
 	transport   MessageTransport
 	write_mutex *sync.Mutex
@@ -72,7 +73,8 @@ type FriendMap struct {
 func (udpm *Messanger) Publish(message_text string) {
 	// sign the message with your private key then pass along to the channels
 	message := Message{
-		content: []byte(message_text),
+		content:    []byte(message_text),
+		public_key: udpm.public_key,
 	}
 	message.Sign(udpm.private_key)
 	for _, friend := range udpm.recipients {
@@ -109,8 +111,13 @@ func (udpm *Messanger) ReadLoop() {
 	// udpm.transport.Reader()
 }
 
-// Instantiates a UDPMessanger.
-func ConfigureMessanger(config *TransportConfig, transport_type TRANSPORT_TYPE) *Messanger {
+/*
+Instantiates a UDPMessanger by
+  - selecting a transport (UDP or WEB)
+  - building the recipients object
+  - instantiating a waitgroup and a write mutex
+*/
+func ConfigureMessanger(config *MessangerConfig, transport_type TRANSPORT_TYPE) *Messanger {
 	var friends []FriendDetail
 	var transport MessageTransport
 	write_mutex := &sync.Mutex{}
@@ -136,6 +143,7 @@ func ConfigureMessanger(config *TransportConfig, transport_type TRANSPORT_TYPE) 
 		recipients:  friends,
 		wait_group:  &wg,
 		private_key: config.PrivateKey,
+		public_key:  encodePublicKey(config.PrivateKey),
 		port:        config.Port,
 		transport:   transport,
 		write_mutex: write_mutex,
@@ -149,14 +157,14 @@ func (udpm *Messanger) OutboundConnect() {
 	}
 }
 
-// Stand-in for actual functionality.
-// Listens for data sent to a channel and pretends to send it
+// Listens for data sent to a channel, prep and send it via the transport.
+// Blocks the main thread until done.
 func sendAndReport(wg *sync.WaitGroup, friend *FriendDetail, transport MessageTransport, write_mutex *sync.Mutex) {
 
 	for message := range friend.message_channel {
 		message.Encrypt(friend.public_key)
-		// I'm gonna have to split this up into packets later
-		err := transport.Writer(friend, message.content)
+		serialized_message := message.Serialize()
+		err := transport.Writer(friend, serialized_message)
 		write_mutex.Lock()
 		if err != nil {
 			fmt.Println("Could not send message to", friend.name, "...", err, X_MARK)

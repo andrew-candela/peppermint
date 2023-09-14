@@ -12,9 +12,18 @@ package internal
 
 import (
 	"crypto/rsa"
+	"fmt"
 	"net"
+	"os"
 
 	"google.golang.org/protobuf/proto"
+)
+
+const (
+	// udpBuffer is 1024 bytes.
+	// Marshalling as Protobuf adds 5 bytes.
+	// We'll use 1000 bytes here to give some leeway
+	GRAM_SIZE = 1000
 )
 
 type RawUDPMessage struct {
@@ -69,6 +78,8 @@ func (message *Message) Sign(private_key *rsa.PrivateKey) {
 	message.signature = signature
 }
 
+// Produces a byte array by creating a PBMessage and then
+// marshaling it to bytes.
 func (message *Message) Serialize() []byte {
 	new_pb := &PBMessage{
 		Content:   message.content,
@@ -109,4 +120,34 @@ func GramFromBytes(buffer []byte) (Gram, error) {
 		content:     new_gram.Content,
 		expect_more: new_gram.ExpectMore,
 	}, err
+}
+
+// If a message is too long (encoded length is over 1024 bytes)
+// then it will be split into one or more Grams
+func SplitMessage(encoded_message []byte) [][]byte {
+	message_length := len(encoded_message)
+	expect_more := true
+	var gram_list [][]byte
+	for i := 0; i < message_length; i += GRAM_SIZE {
+		end := i + GRAM_SIZE
+		if end > message_length {
+			end = message_length
+		}
+		if end == message_length {
+			expect_more = false
+		}
+		gram_content := encoded_message[i:end]
+		gram := Gram{
+			content:     gram_content,
+			expect_more: expect_more,
+		}
+		pb_gram := gram.Serialize()
+		if len(pb_gram) > 1024 {
+			fmt.Println("Encoded Gram is too long! Exiting the app...")
+			os.Exit(1)
+		}
+
+		gram_list = append(gram_list, pb_gram)
+	}
+	return gram_list
 }

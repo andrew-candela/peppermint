@@ -34,16 +34,19 @@ func createUDPConnection(ip_port string) (conn *net.UDPConn, err error) {
 func UDPSend(host string, port string, content []byte) error {
 	conn, _ := createUDPConnection(host + ":" + port)
 	resp_buffer := make([]byte, 1024)
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-	_, err := conn.Write(content)
-	if err != nil {
-		return fmt.Errorf("unable to write to conection...%w", err)
+	grams := SplitMessage(content)
+	for _, gram := range grams {
+		_, err := conn.Write(gram)
+		if err != nil {
+			return fmt.Errorf("unable to write to conection...%w", err)
+		}
+		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+		_, _, err = conn.ReadFromUDP(resp_buffer)
+		if err != nil {
+			return fmt.Errorf("did not get success ack from connection after write...%w", err)
+		}
 	}
-	_, _, err = conn.ReadFromUDP(resp_buffer)
-	if err != nil {
-		return fmt.Errorf("did not get success ack from connection after write...%w", err)
-	}
-	return err
+	return nil
 }
 
 // Set up the UDP connection and listen for incoming messages.

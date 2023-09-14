@@ -43,7 +43,7 @@ func InitUDPM() {
 	fmt.Println("Created UDPM config and private key files in dir:", udpm_path)
 }
 
-type TransportConfig struct {
+type MessangerConfig struct {
 	Name       string
 	Users      []RecipientConfig
 	PrivateKey *rsa.PrivateKey
@@ -57,8 +57,8 @@ type RecipientConfig struct {
 	Name string
 }
 
-func ParseConfigWithViper(group string) *TransportConfig {
-	var group_config TransportConfig
+func ParseConfigWithViper(group string) *MessangerConfig {
+	var group_config MessangerConfig
 	err := viper.ReadInConfig()
 	if err != nil {
 		fmt.Print(err)
