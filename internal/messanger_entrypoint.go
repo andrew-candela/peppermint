@@ -14,7 +14,7 @@ const (
 )
 
 // Set up the transport and begin the Write or Read loop
-func MessageEntrypoint(transport_type TRANSPORT_TYPE, action READ_OR_WRITE, config *TransportConfig) {
+func MessageEntrypoint(transport_type TRANSPORT_TYPE, action READ_OR_WRITE, config *MessangerConfig) {
 	messanger := ConfigureMessanger(config, transport_type)
 	if action == WRITE {
 		messanger.OutboundConnect()
