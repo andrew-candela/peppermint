@@ -70,7 +70,7 @@ func (udpt *UDPTransport) Reader() {
 		return
 	}
 
-	fmt.Printf("Listening on address %v:%v ...\n", udp_addr.IP.String(), udp_addr.Port)
+	fmt.Printf("Listening on address %v:%v ...\n", GetOutboundIP().String(), udp_addr.Port)
 	connection, err := net.ListenUDP(PROTOCOL, udp_addr)
 	if err != nil {
 		err = fmt.Errorf("could not open UDP port to listen for messages... %w", err)
