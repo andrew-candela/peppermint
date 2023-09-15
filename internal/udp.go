@@ -76,15 +76,3 @@ func UDPListen(port string, message_channel chan<- RawUDPMessage) {
 		}
 	}
 }
-
-// handles the UDP Specific stuff, and then calls GenericMessageHandler
-func UDPMessageHandler(message_channel <-chan *[]byte) {
-	for raw_message := range message_channel {
-		fmt.Printf(
-			// "Got message: '%v' from address: %v",
-			// raw_message.content_buffer[:raw_message.length],
-			// raw_message.sender_address.IP.To4(),
-			"Got message: %v", string(*raw_message),
-		)
-	}
-}
