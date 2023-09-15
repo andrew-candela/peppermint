@@ -80,7 +80,7 @@ func (udpt *UDPTransport) Reader() {
 	for {
 		buffer := make([]byte, 1024)
 		n, resp_addr, _ := connection.ReadFromUDP(buffer)
-		sender_address := resp_addr.IP.String() + ":" + fmt.Sprint(resp_addr.Port)
+		sender_address := resp_addr.IP.String()
 		friend, ok := friend_map[sender_address]
 		if !ok {
 			fmt.Println("Could not find user located at host: ", sender_address)
@@ -117,7 +117,7 @@ func createFriendPubKeyMap(friend_list []FriendDetail) map[string]FriendDetail {
 func createFriendHostMap(friend_list []FriendDetail) map[string]FriendDetail {
 	friend_map := make(map[string]FriendDetail, len(friend_list))
 	for _, friend := range friend_list {
-		friend_map[friend.host+":"+friend.port] = friend
+		friend_map[friend.host] = friend
 	}
 	return friend_map
 }
