@@ -69,7 +69,26 @@ func (message *Message) Encrypt(pub_key *rsa.PublicKey) {
 	CheckErrFatal(err)
 	message.content = ciphertext
 	message.aes_key = encrypted_aes_key
+}
 
+// Decrypts the Message content, modifying the Message in place
+func (message *Message) Decrypt(priv_key *rsa.PrivateKey) error {
+	decrypted_aes_key, err := RSADecrypt(priv_key, message.aes_key)
+	if err != nil {
+		return fmt.Errorf("unable to decrypt AES key... %w", err)
+
+	}
+	decrypted_content, err := AESDecrypt(message.content, decrypted_aes_key)
+	if err != nil {
+		return fmt.Errorf("unable to decrypt message... %w", err)
+	}
+	message.content = decrypted_content
+	return nil
+}
+
+func (message *Message) VerifySignature() bool {
+	pub_key := ParsePublicKey(message.public_key)
+	return RSAVerify(pub_key, message.content, message.signature)
 }
 
 func (message *Message) Sign(private_key *rsa.PrivateKey) {
