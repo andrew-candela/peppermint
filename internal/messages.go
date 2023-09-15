@@ -13,7 +13,6 @@ package internal
 import (
 	"crypto/rsa"
 	"fmt"
-	"net"
 	"os"
 
 	"google.golang.org/protobuf/proto"
@@ -25,12 +24,6 @@ const (
 	// We'll use 1000 bytes here to give some leeway
 	GRAM_SIZE = 1000
 )
-
-type RawUDPMessage struct {
-	content_buffer []byte
-	length         int
-	sender_address *net.UDPAddr
-}
 
 // This is sent by the writer, and is unconcerned with the transport.
 // The public key here is the public key of the
@@ -69,10 +62,12 @@ func (message *Message) Encrypt(pub_key *rsa.PublicKey) {
 	CheckErrFatal(err)
 	message.content = ciphertext
 	message.aes_key = encrypted_aes_key
+	fmt.Printf("AES Encrypted message is %v bytes, and AES key is %v bytes\n", len(message.content), len(message.aes_key))
 }
 
 // Decrypts the Message content, modifying the Message in place
 func (message *Message) Decrypt(priv_key *rsa.PrivateKey) error {
+	fmt.Printf("AES Encrypted message is %v bytes, and AES key is %v bytes\n", len(message.content), len(message.aes_key))
 	decrypted_aes_key, err := RSADecrypt(priv_key, message.aes_key)
 	if err != nil {
 		return fmt.Errorf("unable to decrypt AES key... %w", err)

@@ -196,6 +196,9 @@ func IncomingMessageHandler(friend FriendDetail, write_mutex *sync.Mutex, privat
 // Listen on a UDP port and assign messages
 func (udpm *Messanger) ReadLoop() {
 	// start the message handler
+	fmt.Println("Listening for messages. Your public key is:", string(udpm.public_key))
+	DisplayPublicKey(udpm.private_key)
+	fmt.Println("Your public key bytes are:", udpm.public_key)
 	for _, friend := range udpm.recipients {
 		go IncomingMessageHandler(friend, udpm.write_mutex, udpm.private_key)
 	}
@@ -240,7 +243,7 @@ func ConfigureMessanger(config *MessangerConfig, transport_type TRANSPORT_TYPE) 
 		recipients:  friends,
 		wait_group:  &wg,
 		private_key: config.PrivateKey,
-		public_key:  encodePublicKey(config.PrivateKey),
+		public_key:  EncodePublicKey(config.PrivateKey),
 		port:        config.Port,
 		transport:   transport,
 		write_mutex: write_mutex,
@@ -259,6 +262,7 @@ func (udpm *Messanger) OutboundConnect() {
 func sendAndReport(wg *sync.WaitGroup, friend *FriendDetail, transport MessageTransport, write_mutex *sync.Mutex) {
 
 	for message := range friend.message_channel {
+		fmt.Println("Sending message with public key:", PublicKeyToBytes(friend.public_key))
 		message.Encrypt(friend.public_key)
 		serialized_message := message.Serialize()
 		err := transport.Writer(friend, serialized_message)

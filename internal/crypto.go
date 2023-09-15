@@ -175,7 +175,7 @@ func WriteKeyToDisk(key *rsa.PrivateKey, fileName string) {
 }
 
 // Produces the public key bytearray from the given private key
-func encodePublicKey(key *rsa.PrivateKey) []byte {
+func EncodePublicKey(key *rsa.PrivateKey) []byte {
 	pubKey := key.PublicKey
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(&pubKey)
 	if err != nil {
@@ -191,14 +191,14 @@ func encodePublicKey(key *rsa.PrivateKey) []byte {
 }
 
 func WritePublicKey(key *rsa.PrivateKey, fileName string) {
-	bytes := encodePublicKey(key)
+	bytes := EncodePublicKey(key)
 	err := os.WriteFile(fileName, bytes, 0600)
 	CheckErrFatal(err)
 }
 
 // Prints the public key byte array from a given private key
 func DisplayPublicKey(key *rsa.PrivateKey) {
-	pem_key := encodePublicKey(key)
+	pem_key := EncodePublicKey(key)
 	fmt.Println(string(pem_key))
 }
 
