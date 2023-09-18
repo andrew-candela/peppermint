@@ -39,3 +39,20 @@ func TestAESEncryptLong(t *testing.T) {
 		t.Error("unexpected results!")
 	}
 }
+
+func TestRSAEncrypt(t *testing.T) {
+	key := GenerateRandomKey()
+	pub_key := key.PublicKey
+	clear_text := []byte("Hello world!")
+	ciphertext, err := RSAEncrypt(&pub_key, clear_text)
+	if err != nil {
+		t.Error(err)
+	}
+	decrypted_text, err := RSADecrypt(key, ciphertext)
+	if err != nil {
+		t.Error(err)
+	}
+	if string(decrypted_text) != string(clear_text) {
+		t.Errorf("%v != %v", decrypted_text, clear_text)
+	}
+}

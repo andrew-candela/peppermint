@@ -8,7 +8,7 @@ import (
 
 // Get outbound ip of this machine. Doesn't quite work.
 // Returns the internal IP of this machine.
-func getOutboundIP() net.IP {
+func GetOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	CheckErrFatal(err)
 	defer conn.Close()
@@ -47,32 +47,4 @@ func UDPSend(host string, port string, content []byte) error {
 		}
 	}
 	return nil
-}
-
-// Set up the UDP connection and listen for incoming messages.
-// Doesn't care about the contents of the message,
-// just passes the []byte on to the provided channel
-func UDPListen(port string, message_channel chan<- RawUDPMessage) {
-	udpAddr, err := net.ResolveUDPAddr(PROTOCOL, ":"+port)
-	CheckErrFatal(err)
-
-	fmt.Println("Listening at: ", getOutboundIP().String()+udpAddr.String())
-	connection, err := net.ListenUDP(PROTOCOL, udpAddr)
-	CheckErrFatal(err)
-	defer connection.Close()
-
-	// Listen loop
-	for {
-		buffer := make([]byte, 1024)
-		n, respAddr, err := connection.ReadFromUDP(buffer)
-		if err != nil {
-			fmt.Printf("Could not read message from %v because of error: %v\n", respAddr.IP.To4(), err)
-			continue
-		}
-		message_channel <- RawUDPMessage{
-			content_buffer: buffer,
-			length:         n,
-			sender_address: respAddr,
-		}
-	}
 }

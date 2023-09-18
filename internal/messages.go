@@ -13,7 +13,6 @@ package internal
 import (
 	"crypto/rsa"
 	"fmt"
-	"net"
 	"os"
 
 	"google.golang.org/protobuf/proto"
@@ -25,12 +24,6 @@ const (
 	// We'll use 1000 bytes here to give some leeway
 	GRAM_SIZE = 1000
 )
-
-type RawUDPMessage struct {
-	content_buffer []byte
-	length         int
-	sender_address *net.UDPAddr
-}
 
 // This is sent by the writer, and is unconcerned with the transport.
 // The public key here is the public key of the
@@ -88,6 +81,7 @@ func (message *Message) Decrypt(priv_key *rsa.PrivateKey) error {
 
 func (message *Message) VerifySignature() bool {
 	pub_key := ParsePublicKey(message.public_key)
+	// fmt.Printf("Tyring to verify content: %v", string(message.content))
 	return RSAVerify(pub_key, message.content, message.signature)
 }
 
@@ -104,7 +98,7 @@ func (message *Message) Serialize() []byte {
 		Content:   message.content,
 		Signature: message.signature,
 		AesKey:    message.aes_key,
-		PublicKey: message.aes_key,
+		PublicKey: message.public_key,
 	}
 	data, err := proto.Marshal(new_pb)
 	CheckErrFatal(err)

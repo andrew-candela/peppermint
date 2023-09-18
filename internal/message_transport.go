@@ -186,7 +186,7 @@ func IncomingMessageHandler(friend FriendDetail, write_mutex *sync.Mutex, privat
 			}
 			write_mutex.Lock()
 			fmt.Printf(
-				"%v\n%v", friend.name, string(message.content),
+				"%v\n%v\n\n", friend.name, string(message.content),
 			)
 			write_mutex.Unlock()
 		}
@@ -196,6 +196,7 @@ func IncomingMessageHandler(friend FriendDetail, write_mutex *sync.Mutex, privat
 // Listen on a UDP port and assign messages
 func (udpm *Messanger) ReadLoop() {
 	// start the message handler
+	fmt.Println("Listening for messages...")
 	for _, friend := range udpm.recipients {
 		go IncomingMessageHandler(friend, udpm.write_mutex, udpm.private_key)
 	}
@@ -240,7 +241,7 @@ func ConfigureMessanger(config *MessangerConfig, transport_type TRANSPORT_TYPE) 
 		recipients:  friends,
 		wait_group:  &wg,
 		private_key: config.PrivateKey,
-		public_key:  encodePublicKey(config.PrivateKey),
+		public_key:  EncodePublicKey(config.PrivateKey),
 		port:        config.Port,
 		transport:   transport,
 		write_mutex: write_mutex,
@@ -266,7 +267,7 @@ func sendAndReport(wg *sync.WaitGroup, friend *FriendDetail, transport MessageTr
 		if err != nil {
 			fmt.Println("Could not send message to", friend.name, "...", err, X_MARK)
 		} else {
-			fmt.Printf("Sent %v message: %v \u2705\n", friend.name, string(message.content))
+			fmt.Printf("%v:\u2705\n", friend.name)
 		}
 		write_mutex.Unlock()
 		wg.Done()
