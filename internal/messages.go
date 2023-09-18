@@ -99,7 +99,7 @@ func (message *Message) Serialize() []byte {
 		Content:   message.content,
 		Signature: message.signature,
 		AesKey:    message.aes_key,
-		PublicKey: message.aes_key,
+		PublicKey: message.public_key,
 	}
 	data, err := proto.Marshal(new_pb)
 	CheckErrFatal(err)

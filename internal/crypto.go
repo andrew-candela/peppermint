@@ -212,7 +212,7 @@ func GenerateRandomKey() *rsa.PrivateKey {
 // Converts a public RSA key into bytes.
 // This is the inverse of ParsePublicKey.
 func PublicKeyToBytes(key *rsa.PublicKey) []byte {
-	pubKeyBytes, err := x509.MarshalPKIXPublicKey(&key)
+	pubKeyBytes, err := x509.MarshalPKIXPublicKey(key)
 	CheckErrFatal(err)
 	return pubKeyBytes
 }
