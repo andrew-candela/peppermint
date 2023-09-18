@@ -100,7 +100,7 @@ type FriendDetail struct {
 	host             string
 	port             string
 	public_key       *rsa.PublicKey
-	message_channel  chan *Message
+	message_channel  chan Message
 	inbound_messages chan []byte
 	name             string
 }
@@ -131,7 +131,7 @@ func (udpm *Messanger) Publish(message_text string) {
 	}
 	message.Sign(udpm.private_key)
 	for _, friend := range udpm.recipients {
-		friend.message_channel <- &message
+		friend.message_channel <- message
 		udpm.wait_group.Add(1)
 	}
 	udpm.wait_group.Wait()
@@ -218,7 +218,7 @@ func ConfigureMessanger(config *MessangerConfig, transport_type TRANSPORT_TYPE) 
 			host:             recip.Host,
 			port:             recip.Port,
 			public_key:       ParsePublicKey([]byte(recip.Key)),
-			message_channel:  make(chan *Message),
+			message_channel:  make(chan Message),
 			inbound_messages: make(chan []byte),
 			name:             recip.Name,
 		})
