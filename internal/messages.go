@@ -62,12 +62,10 @@ func (message *Message) Encrypt(pub_key *rsa.PublicKey) {
 	CheckErrFatal(err)
 	message.content = ciphertext
 	message.aes_key = encrypted_aes_key
-	fmt.Printf("AES Encrypted message is %v bytes, and AES key is %v bytes\n", len(message.content), len(message.aes_key))
 }
 
 // Decrypts the Message content, modifying the Message in place
 func (message *Message) Decrypt(priv_key *rsa.PrivateKey) error {
-	fmt.Printf("AES Encrypted message is %v bytes, and AES key is %v bytes\n", len(message.content), len(message.aes_key))
 	decrypted_aes_key, err := RSADecrypt(priv_key, message.aes_key)
 	if err != nil {
 		return fmt.Errorf("unable to decrypt AES key... %w", err)
