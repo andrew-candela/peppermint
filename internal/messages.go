@@ -81,6 +81,7 @@ func (message *Message) Decrypt(priv_key *rsa.PrivateKey) error {
 
 func (message *Message) VerifySignature() bool {
 	pub_key := ParsePublicKey(message.public_key)
+	// fmt.Printf("Tyring to verify content: %v", string(message.content))
 	return RSAVerify(pub_key, message.content, message.signature)
 }
 

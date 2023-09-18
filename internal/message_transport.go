@@ -267,7 +267,7 @@ func sendAndReport(wg *sync.WaitGroup, friend *FriendDetail, transport MessageTr
 		if err != nil {
 			fmt.Println("Could not send message to", friend.name, "...", err, X_MARK)
 		} else {
-			fmt.Printf("Sent %v message: %v \u2705\n", friend.name, string(message.content))
+			fmt.Printf("%v:\u2705\n", friend.name)
 		}
 		write_mutex.Unlock()
 		wg.Done()
