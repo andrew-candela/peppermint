@@ -1,13 +1,18 @@
 package internal
 
 import (
+	"bytes"
+	"context"
 	"crypto/rsa"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/chzyer/readline"
+	"nhooyr.io/websocket"
 )
 
 const (
@@ -33,8 +38,10 @@ type Messanger struct {
 }
 
 type WEBTransport struct {
-	friends []FriendDetail
-	port    string
+	friends     []FriendDetail
+	port        string
+	host_url    string
+	private_key *rsa.PrivateKey
 }
 type UDPTransport struct {
 	friends []FriendDetail
@@ -42,14 +49,66 @@ type UDPTransport struct {
 }
 
 // Publish the message to the WEB recips
-func (webt *WEBTransport) Writer(*FriendDetail, []byte) error {
-	return fmt.Errorf("not Implemented")
+func (webt *WEBTransport) Writer(friend *FriendDetail, content []byte) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, webt.host_url+"/publish", bytes.NewReader(content))
+	if err != nil {
+		return fmt.Errorf("problem constructing publish request... %w", err)
+	}
+	req.Header.Set(HEADER_TARGET_PUBLIC_KEY, string(PublicKeyToBytes(friend.public_key)))
+	_, err = http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("problem performing publish request... %w", err)
+	}
+	return nil
 }
 
 // Read incoming messages from the websocket connection
 func (webt *WEBTransport) Reader() {
-	_ = createFriendPubKeyMap(webt.friends)
-	panic("not implemented")
+	friend_map := createFriendPubKeyMap(webt.friends)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	connection, _, err := websocket.Dial(ctx, webt.host_url+"/subscribe", nil)
+	if err != nil {
+		fmt.Errorf("could not create websocket connection to host: %w, %v", webt.host_url, err)
+		os.Exit(1)
+	}
+	for {
+		message_type, message_bytes, err := connection.Read(context.Background())
+		if err != nil {
+			fmt.Println("error: could not read message from websocket conn: ", err)
+			continue
+		}
+		if message_type != websocket.MessageBinary {
+			fmt.Println("error: could not read message of type: ", message_type.String())
+			continue
+		}
+		message, err := MessageFromBytes(message_bytes)
+		if err != nil {
+			fmt.Println("could not deserialize message...", err)
+			continue
+		}
+		err = message.Decrypt(webt.private_key)
+		if err != nil {
+			fmt.Println("Could not decrypt message: ", err)
+			continue
+		}
+		if !message.VerifySignature() {
+			fmt.Println("Could not verify signature of message. Skipping...")
+			continue
+		}
+		pub_key := ParsePublicKey(message.public_key)
+		pub_key_string := string(PublicKeyToBytes(pub_key))
+		friend, ok := friend_map[pub_key_string]
+		if !ok {
+			fmt.Println("Could not find frined associated with public key: ", pub_key_string)
+			continue
+		}
+		fmt.Printf("%v >\n", friend.name)
+		fmt.Println(message.content)
+	}
+
 }
 
 // Publish messages to the UDP recipients
@@ -105,8 +164,10 @@ type FriendDetail struct {
 	name             string
 }
 
+type FriendDetailMap map[string]FriendDetail
+
 // Use the friend public key as an identifier for each friend in map
-func createFriendPubKeyMap(friend_list []FriendDetail) map[string]FriendDetail {
+func createFriendPubKeyMap(friend_list []FriendDetail) FriendDetailMap {
 	friend_map := make(map[string]FriendDetail, len(friend_list))
 	for _, friend := range friend_list {
 		friend_map[string(PublicKeyToBytes(friend.public_key))] = friend
@@ -114,7 +175,7 @@ func createFriendPubKeyMap(friend_list []FriendDetail) map[string]FriendDetail {
 	return friend_map
 }
 
-func createFriendHostMap(friend_list []FriendDetail) map[string]FriendDetail {
+func createFriendHostMap(friend_list []FriendDetail) FriendDetailMap {
 	friend_map := make(map[string]FriendDetail, len(friend_list))
 	for _, friend := range friend_list {
 		friend_map[friend.host] = friend

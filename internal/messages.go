@@ -35,14 +35,6 @@ type Message struct {
 	public_key []byte
 }
 
-// A receiver gets a serialized version of this struct.
-// The sender_pubkey is used as a verifiable identifier
-// for the sender.
-type IncomingMessage struct {
-	message       Message
-	sender_pubkey []byte
-}
-
 // Serialized messages (PBMessage) are split into chunks, or 'Grams'.
 // When the receiver gets a Gram with expect_more, it will store it
 // in an array. Once it gets a gram with expect_more == false,
