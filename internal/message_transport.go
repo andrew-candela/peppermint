@@ -71,7 +71,8 @@ func (webt *WEBTransport) Reader() {
 	defer cancel()
 	connection, _, err := websocket.Dial(ctx, webt.host_url+"/subscribe", nil)
 	if err != nil {
-		fmt.Errorf("could not create websocket connection to host: %w, %v", webt.host_url, err)
+		err = fmt.Errorf("could not create websocket connection to host: %v, %w", webt.host_url, err)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 	for {
@@ -102,7 +103,7 @@ func (webt *WEBTransport) Reader() {
 		pub_key_string := string(PublicKeyToBytes(pub_key))
 		friend, ok := friend_map[pub_key_string]
 		if !ok {
-			fmt.Println("Could not find frined associated with public key: ", pub_key_string)
+			fmt.Println("Could not find friend associated with public key: ", pub_key_string)
 			continue
 		}
 		fmt.Printf("%v >\n", friend.name)
@@ -216,6 +217,13 @@ func (udpm *Messanger) WriteLoop() {
 	}
 }
 
+// run the webserver to accept websocket connections
+func (udpm *Messanger) HostWeb() {
+	friend_map := createFriendPubKeyMap(udpm.recipients)
+	server := NewChatServer(friend_map)
+	server.Run(udpm.port)
+}
+
 /*
 Handle incoming serialized grams.
 Each handler instance is associated to a particular friend.
@@ -258,8 +266,11 @@ func IncomingMessageHandler(friend FriendDetail, write_mutex *sync.Mutex, privat
 func (udpm *Messanger) ReadLoop() {
 	// start the message handler
 	fmt.Println("Listening for messages...")
-	for _, friend := range udpm.recipients {
-		go IncomingMessageHandler(friend, udpm.write_mutex, udpm.private_key)
+	_, is_udp_transport := udpm.transport.(*UDPTransport)
+	if is_udp_transport {
+		for _, friend := range udpm.recipients {
+			go IncomingMessageHandler(friend, udpm.write_mutex, udpm.private_key)
+		}
 	}
 	udpm.transport.Reader()
 }
@@ -286,8 +297,10 @@ func ConfigureMessanger(config *MessangerConfig, transport_type TRANSPORT_TYPE) 
 	}
 	if transport_type == WEB {
 		transport = &WEBTransport{
-			friends: friends,
-			port:    config.Port,
+			friends:     friends,
+			port:        config.Port,
+			host_url:    config.URL,
+			private_key: config.PrivateKey,
 		}
 	} else if transport_type == UDP {
 		transport = &UDPTransport{

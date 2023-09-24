@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"sync"
 
 	"nhooyr.io/websocket"
@@ -140,4 +141,12 @@ func (cs *ChatServer) deleteSubscriber(pub_key string) {
 	cs.subscriber_mutex.Lock()
 	delete(cs.subscribers, pub_key)
 	cs.subscriber_mutex.Unlock()
+}
+
+func (cs *ChatServer) Run(port string) {
+	err := http.ListenAndServe(fmt.Sprintf(":%s", port), &cs.serve_mux)
+	if err != nil {
+		fmt.Printf("Error serving app: %v\n", err)
+	}
+	os.Exit(1)
 }

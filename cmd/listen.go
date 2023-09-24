@@ -15,6 +15,10 @@ var readCommand = &cobra.Command{
 	Long:  `Prints the messages sent to the group into stdOut.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		config := internal.ParseConfigWithViper(group)
-		internal.MessageEntrypoint(internal.UDP, internal.READ, config)
+		transport_type := internal.WEB
+		if use_udp {
+			transport_type = internal.UDP
+		}
+		internal.MessageEntrypoint(transport_type, internal.READ, config)
 	},
 }

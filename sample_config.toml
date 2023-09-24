@@ -20,6 +20,7 @@ internal_port = "1053"
 # Choosing produce -g group_one will send messages to two recipients
 [group_one]
 name = "Group One"
+url = "your_host.goes_here.com"
 [[group_one.users]]
 host = "10.0.0.176"
 port = "1053"
@@ -31,6 +32,7 @@ key = "some_other_key"
 # Choosing produce -g group_two will send messages to one recipient
 [group_two]
 name = "Group Two"
+url = "another_host.or_it_could_be_the_same.goes_here.com"
 [[group_two.users]]
 name = "Andy"
 host = "10.0.0.176"

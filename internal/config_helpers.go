@@ -48,6 +48,7 @@ type MessangerConfig struct {
 	Users      []RecipientConfig
 	PrivateKey *rsa.PrivateKey
 	Port       string
+	URL        string
 }
 
 type RecipientConfig struct {
