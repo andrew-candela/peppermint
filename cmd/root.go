@@ -6,6 +6,7 @@ import (
 )
 
 var group string
+var use_udp bool
 
 var rootCMD = &cobra.Command{
 	Use:   "udpm",
@@ -20,6 +21,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCMD.PersistentFlags().StringVarP(&group, "group", "g", "", "Group Name to listen or write to")
+	rootCMD.PersistentFlags().BoolVarP(&use_udp, "udp", "u", false, "Use UDP transport instead of the default WEB")
 }
 
 // Sets up where Viper will look for the config file
