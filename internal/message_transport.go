@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -56,20 +57,31 @@ func (webt *WEBTransport) Writer(friend *FriendDetail, content []byte) error {
 	if err != nil {
 		return fmt.Errorf("problem constructing publish request... %w", err)
 	}
-	req.Header.Set(HEADER_TARGET_PUBLIC_KEY, string(PublicKeyToBytes(friend.public_key)))
-	_, err = http.DefaultClient.Do(req)
+	req.Header.Set(HEADER_TARGET_PUBLIC_KEY, PublicKeyToString(friend.public_key))
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("problem performing publish request... %w", err)
 	}
-	return nil
+	if resp.StatusCode == 200 {
+		return nil
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	return fmt.Errorf("unable to publish message to server... %s", string(body))
 }
 
 // Read incoming messages from the websocket connection
 func (webt *WEBTransport) Reader() {
 	friend_map := createFriendPubKeyMap(webt.friends)
+	pub_key_string := PublicKeyToString(&webt.private_key.PublicKey)
+	options := websocket.DialOptions{
+		HTTPHeader: map[string][]string{
+			HEADER_PUBLIC_KEY: {pub_key_string},
+		},
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	connection, _, err := websocket.Dial(ctx, webt.host_url+"/subscribe", nil)
+	connection, _, err := websocket.Dial(ctx, webt.host_url+"/subscribe", &options)
 	if err != nil {
 		err = fmt.Errorf("could not create websocket connection to host: %v, %w", webt.host_url, err)
 		fmt.Println(err)
@@ -77,6 +89,9 @@ func (webt *WEBTransport) Reader() {
 	}
 	for {
 		message_type, message_bytes, err := connection.Read(context.Background())
+		if context.Canceled != nil {
+			fmt.Println(context.Canceled)
+		}
 		if err != nil {
 			fmt.Println("error: could not read message from websocket conn: ", err)
 			continue
@@ -100,14 +115,14 @@ func (webt *WEBTransport) Reader() {
 			continue
 		}
 		pub_key := ParsePublicKey(message.public_key)
-		pub_key_string := string(PublicKeyToBytes(pub_key))
+		pub_key_string := PublicKeyToString(pub_key)
 		friend, ok := friend_map[pub_key_string]
 		if !ok {
 			fmt.Println("Could not find friend associated with public key: ", pub_key_string)
 			continue
 		}
 		fmt.Printf("%v >\n", friend.name)
-		fmt.Println(message.content)
+		fmt.Println(string(message.content))
 	}
 
 }
@@ -171,7 +186,7 @@ type FriendDetailMap map[string]FriendDetail
 func createFriendPubKeyMap(friend_list []FriendDetail) FriendDetailMap {
 	friend_map := make(map[string]FriendDetail, len(friend_list))
 	for _, friend := range friend_list {
-		friend_map[string(PublicKeyToBytes(friend.public_key))] = friend
+		friend_map[PublicKeyToString(friend.public_key)] = friend
 	}
 	return friend_map
 }

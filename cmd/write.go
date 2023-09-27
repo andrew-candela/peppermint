@@ -18,6 +18,10 @@ var writeCommand = &cobra.Command{
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		config := internal.ParseConfigWithViper(group)
-		internal.MessageEntrypoint(internal.UDP, internal.WRITE, config)
+		transport_type := internal.WEB
+		if use_udp {
+			transport_type = internal.UDP
+		}
+		internal.MessageEntrypoint(transport_type, internal.WRITE, config)
 	},
 }

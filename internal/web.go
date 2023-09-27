@@ -43,10 +43,12 @@ type Subscriber struct {
 
 func NewChatServer(friend_map FriendDetailMap) *ChatServer {
 	cs := ChatServer{
-		friend_map: friend_map,
+		friend_map:  friend_map,
+		subscribers: map[string]Subscriber{},
 	}
 	cs.serve_mux.HandleFunc("/subscribe", cs.subscribeHandler)
 	cs.serve_mux.HandleFunc("/publish", cs.publishHandler)
+	cs.serve_mux.HandleFunc("/", cs.echoHandler)
 
 	return &cs
 }
@@ -77,6 +79,12 @@ func (cs *ChatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (cs *ChatServer) echoHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Println("Got Something!")
+	fmt.Fprintln(w, "Got something!")
+}
+
 // A message is published by posting the body to the /publish endpoint
 // The payload of the request will have the public key of the recip along
 // with the message itself
@@ -91,9 +99,12 @@ func (cs *ChatServer) publishHandler(w http.ResponseWriter, r *http.Request) {
 	message := body
 	err = cs.publish(pub_key, message)
 	if err != nil {
-		http.Error(w, "failed to send message", http.StatusInternalServerError)
+		err_string := fmt.Sprintf("unable to publish message... %v", err)
+		http.Error(w, err_string, http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
+
 }
 
 // Creates a new subscriber object and adds it to the map.
@@ -124,7 +135,7 @@ func (cs *ChatServer) publish(pub_key string, message []byte) error {
 	defer cs.subscriber_mutex.Unlock()
 	sub, ok := cs.subscribers[pub_key]
 	if !ok {
-		return fmt.Errorf("given public key is not in subscriber map: %v", pub_key)
+		return fmt.Errorf("given public key is not in subscriber map")
 	}
 	sub.msgs <- message
 	return nil

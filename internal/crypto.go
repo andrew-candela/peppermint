@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -215,4 +216,18 @@ func PublicKeyToBytes(key *rsa.PublicKey) []byte {
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(key)
 	CheckErrFatal(err)
 	return pubKeyBytes
+}
+
+// Returns the x509 format with newlines removed
+func PublicKeyToString(key *rsa.PublicKey) string {
+	pubKeyBytes, err := x509.MarshalPKIXPublicKey(key)
+	CheckErrFatal(err)
+	pemData := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PUBLIC KEY",
+			Bytes: pubKeyBytes,
+		},
+	)
+	pemString := strings.ReplaceAll(string(pemData), "\n", "")
+	return pemString
 }
