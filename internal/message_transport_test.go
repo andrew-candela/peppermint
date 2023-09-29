@@ -21,7 +21,7 @@ func TestConfigTransport(t *testing.T) {
 	if config.Users[1].Name != "Bill" {
 		t.Errorf("2nd User name is wrong, %v", config.Users[1].Name)
 	}
-	messanger := ConfigureMessanger(config, UDP)
+	messanger := ConfigureMessanger(config)
 	recip_private_key := GenerateRandomKey()
 	if err != nil {
 		t.Errorf("could not sign message, %v", err)

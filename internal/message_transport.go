@@ -1,3 +1,10 @@
+/*
+This file contains the logic used to set up the user interface.
+The UI for this will be inside a terminal, so it's mostly just
+going to be about prompting the user for input and displaying
+output to them in reasonable ways.
+*/
+
 package internal
 
 import (
@@ -6,7 +13,6 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -40,13 +46,8 @@ type Messanger struct {
 
 type WEBTransport struct {
 	friends     []FriendDetail
-	port        string
 	host_url    string
 	private_key *rsa.PrivateKey
-}
-type UDPTransport struct {
-	friends []FriendDetail
-	port    string
 }
 
 // Publish the message to the WEB recips
@@ -127,53 +128,8 @@ func (webt *WEBTransport) Reader() {
 
 }
 
-// Publish messages to the UDP recipients
-func (udpt *UDPTransport) Writer(friend *FriendDetail, content []byte) error {
-	return UDPSend(friend.host, friend.port, content)
-}
-
-/*
-Open a UDP port and listen for incoming messages.
-If the message is from a known host, then pass to the associated
-channel, and send a success ack.
-*/
-func (udpt *UDPTransport) Reader() {
-	friend_map := createFriendHostMap(udpt.friends)
-	udp_addr, err := net.ResolveUDPAddr(PROTOCOL, ":"+udpt.port)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Printf("Listening on address %v:%v ...\n", GetOutboundIP().String(), udp_addr.Port)
-	connection, err := net.ListenUDP(PROTOCOL, udp_addr)
-	if err != nil {
-		err = fmt.Errorf("could not open UDP port to listen for messages... %w", err)
-		panic(err)
-	}
-	defer connection.Close()
-	for {
-		buffer := make([]byte, 1024)
-		n, resp_addr, _ := connection.ReadFromUDP(buffer)
-		sender_address := resp_addr.IP.String()
-		friend, ok := friend_map[sender_address]
-		if !ok {
-			fmt.Println("Could not find user located at host: ", sender_address)
-			continue
-		}
-		friend.inbound_messages <- buffer[:n]
-		_, err := connection.WriteToUDP([]byte(MEDIUM_CHECK_MARK), resp_addr)
-		if err != nil {
-			fmt.Printf("Unable to send ack byte to %s:%v %s", resp_addr.IP.String(), resp_addr.Port, err)
-		}
-	}
-
-}
-
 // Holds details about who you will be sending/receiving messages from.
 type FriendDetail struct {
-	host             string
-	port             string
 	public_key       *rsa.PublicKey
 	message_channel  chan Message
 	inbound_messages chan []byte
@@ -191,32 +147,24 @@ func createFriendPubKeyMap(friend_list []FriendDetail) FriendDetailMap {
 	return friend_map
 }
 
-func createFriendHostMap(friend_list []FriendDetail) FriendDetailMap {
-	friend_map := make(map[string]FriendDetail, len(friend_list))
-	for _, friend := range friend_list {
-		friend_map[friend.host] = friend
-	}
-	return friend_map
-}
-
 // Publish a message by sending it to all the channels associated with recips
-func (udpm *Messanger) Publish(message_text string) {
-	// sign the message with your private key then pass along to the channels
+func (ppmt *Messanger) Publish(message_text string) {
 	message := Message{
 		content:    []byte(message_text),
-		public_key: udpm.public_key,
+		public_key: ppmt.public_key,
 	}
-	message.Sign(udpm.private_key)
-	for _, friend := range udpm.recipients {
+	// sign the message with your private key then pass along to the channels
+	message.Sign(ppmt.private_key)
+	for _, friend := range ppmt.recipients {
 		friend.message_channel <- message
-		udpm.wait_group.Add(1)
+		ppmt.wait_group.Add(1)
 	}
-	udpm.wait_group.Wait()
+	ppmt.wait_group.Wait()
 }
 
 // Readline loop collecting input from user.
 // Sends messages with messanger.Publish() for processing
-func (udpm *Messanger) WriteLoop() {
+func (ppmt *Messanger) WriteLoop() {
 	rl, err := readline.New("> ")
 	if err != nil {
 		panic(err)
@@ -228,15 +176,14 @@ func (udpm *Messanger) WriteLoop() {
 		if err != nil { // io.EOF
 			break
 		}
-		udpm.Publish(line)
+		ppmt.Publish(line)
 	}
 }
 
 // run the webserver to accept websocket connections
-func (udpm *Messanger) HostWeb() {
-	friend_map := createFriendPubKeyMap(udpm.recipients)
-	server := NewChatServer(friend_map)
-	server.Run(udpm.port)
+func (ppmt *Messanger) HostWeb() {
+	server := NewChatServer()
+	server.Run(ppmt.port)
 }
 
 /*
@@ -277,70 +224,48 @@ func IncomingMessageHandler(friend FriendDetail, write_mutex *sync.Mutex, privat
 	}
 }
 
-// Listen on a UDP port and assign messages
-func (udpm *Messanger) ReadLoop() {
+func (ppmt *Messanger) ReadLoop() {
 	// start the message handler
 	fmt.Println("Listening for messages...")
-	_, is_udp_transport := udpm.transport.(*UDPTransport)
-	if is_udp_transport {
-		for _, friend := range udpm.recipients {
-			go IncomingMessageHandler(friend, udpm.write_mutex, udpm.private_key)
-		}
-	}
-	udpm.transport.Reader()
+	ppmt.transport.Reader()
 }
 
 /*
-Instantiates a UDPMessanger by
-  - selecting a transport (UDP or WEB)
+Instantiates a PPMTessanger by
   - building the recipients object
   - instantiating a waitgroup and a write mutex
 */
-func ConfigureMessanger(config *MessangerConfig, transport_type TRANSPORT_TYPE) *Messanger {
+func ConfigureMessanger(config *MessangerConfig) *Messanger {
 	var friends []FriendDetail
 	var transport MessageTransport
 	write_mutex := &sync.Mutex{}
 	for _, recip := range config.Users {
 		friends = append(friends, FriendDetail{
-			host:             recip.Host,
-			port:             recip.Port,
 			public_key:       ParsePublicKey([]byte(recip.Key)),
 			message_channel:  make(chan Message),
 			inbound_messages: make(chan []byte),
 			name:             recip.Name,
 		})
 	}
-	if transport_type == WEB {
-		transport = &WEBTransport{
-			friends:     friends,
-			port:        config.Port,
-			host_url:    config.URL,
-			private_key: config.PrivateKey,
-		}
-	} else if transport_type == UDP {
-		transport = &UDPTransport{
-			friends: friends,
-			port:    config.Port,
-		}
-	} else {
-		panic("Illegal transport value has been passed!")
+	transport = &WEBTransport{
+		friends:     friends,
+		host_url:    config.URL,
+		private_key: config.PrivateKey,
 	}
 	wg := sync.WaitGroup{}
 	return &Messanger{
 		recipients:  friends,
 		wait_group:  &wg,
 		private_key: config.PrivateKey,
-		public_key:  EncodePublicKey(config.PrivateKey),
-		port:        config.Port,
 		transport:   transport,
 		write_mutex: write_mutex,
 	}
 }
 
 // Sets up goroutines for each recipient and then returns.
-func (udpm *Messanger) OutboundConnect() {
-	for i := range udpm.recipients {
-		go sendAndReport(udpm.wait_group, &udpm.recipients[i], udpm.transport, udpm.write_mutex)
+func (ppmt *Messanger) OutboundConnect() {
+	for i := range ppmt.recipients {
+		go sendAndReport(ppmt.wait_group, &ppmt.recipients[i], ppmt.transport, ppmt.write_mutex)
 	}
 }
 

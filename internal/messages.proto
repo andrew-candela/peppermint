@@ -1,7 +1,7 @@
 syntax = "proto3";
 package internal;
 
-option go_package = "github.com/andrew-candela/udpm/internal";
+option go_package = "github.com/andrew-candela/peppermint/internal";
 
 message PBMessage {
   bytes content = 1;

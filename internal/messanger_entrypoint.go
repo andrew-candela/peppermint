@@ -4,19 +4,14 @@ type TRANSPORT_TYPE int
 type READ_OR_WRITE int
 
 const (
-	UDP TRANSPORT_TYPE = iota
-	WEB
-)
-
-const (
 	READ READ_OR_WRITE = iota
 	WRITE
 	HOST
 )
 
 // Set up the transport and begin the Write or Read loop
-func MessageEntrypoint(transport_type TRANSPORT_TYPE, action READ_OR_WRITE, config *MessangerConfig) {
-	messanger := ConfigureMessanger(config, transport_type)
+func MessageEntrypoint(action READ_OR_WRITE, config *MessangerConfig) {
+	messanger := ConfigureMessanger(config)
 	if action == WRITE {
 		messanger.OutboundConnect()
 		messanger.WriteLoop()

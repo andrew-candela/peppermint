@@ -31,7 +31,6 @@ type ChatServer struct {
 	subscriber_mutex sync.Mutex
 	serve_mux        http.ServeMux
 	subscribers      map[string]Subscriber
-	friend_map       FriendDetailMap
 }
 
 type ChatClient struct {
@@ -41,9 +40,8 @@ type Subscriber struct {
 	msgs chan []byte
 }
 
-func NewChatServer(friend_map FriendDetailMap) *ChatServer {
+func NewChatServer() *ChatServer {
 	cs := ChatServer{
-		friend_map:  friend_map,
 		subscribers: map[string]Subscriber{},
 	}
 	cs.serve_mux.HandleFunc("/subscribe", cs.subscribeHandler)
@@ -87,7 +85,9 @@ func (cs *ChatServer) echoHandler(w http.ResponseWriter, r *http.Request) {
 
 // A message is published by posting the body to the /publish endpoint
 // The payload of the request will have the public key of the recip along
-// with the message itself
+// with the message itself.
+// The webserver doesn't look at the payload though, it looks for the recipient
+// in the request headers
 func (cs *ChatServer) publishHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {

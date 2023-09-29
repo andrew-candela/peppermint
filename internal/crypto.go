@@ -173,6 +173,9 @@ func WriteKeyToDisk(key *rsa.PrivateKey, fileName string) {
 	)
 	err := os.WriteFile(fileName, pemData, 0600)
 	CheckErrFatal(err)
+	pub_key := EncodePublicKey(key)
+	err = os.WriteFile(fileName+".pub", pub_key, 0600)
+	CheckErrFatal(err)
 }
 
 // Produces the public key bytearray from the given private key

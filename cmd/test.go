@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/andrew-candela/udpm/internal"
+	"github.com/andrew-candela/peppermint/internal"
 	"github.com/spf13/cobra"
 )
 
