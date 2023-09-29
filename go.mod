@@ -1,4 +1,4 @@
-module github.com/andrew-candela/udpm
+module github.com/andrew-candela/peppermint
 
 go 1.19
 

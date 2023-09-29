@@ -1,6 +1,6 @@
 /*
 This package holds some helper functions to
-load and parse the UDPM configuration file.
+load and parse the PPMT configuration file.
 */
 
 package internal
@@ -23,37 +23,33 @@ func copySampleConfigFile(example_config_path string, out_path string) {
 	CheckErrFatal(err)
 }
 
-// Create the sample UDPM config file in the user's local
+// Create the sample PPMT config file in the user's local
 // filesystem or die trying.
-func createUDPMConfig() (string, string) {
+func createPPMTConfig() (string, string) {
 	home, err := os.UserHomeDir()
 	CheckErrFatal(err)
-	udpm_path := filepath.Join(home, ".udpm")
-	udpm_config := filepath.Join(udpm_path, "config")
-	err = os.MkdirAll(udpm_path, os.ModePerm)
+	ppmt_path := filepath.Join(home, ".peppermint")
+	ppmt_config := filepath.Join(ppmt_path, "config")
+	err = os.MkdirAll(ppmt_path, os.ModePerm)
 	CheckErrFatal(err)
-	copySampleConfigFile(SAMPLE_CONFIG_FILE, udpm_config)
-	return udpm_path, udpm_config
+	copySampleConfigFile(SAMPLE_CONFIG_FILE, ppmt_config)
+	return ppmt_path, ppmt_config
 }
 
 // Write the config file and generate a new, random RSA keyfile
-func InitUDPM() {
-	udpm_path, _ := createUDPMConfig()
-	WriteKeyToDisk(GenerateRandomKey(), filepath.Join(udpm_path, "udpm_id_rsa"))
-	fmt.Println("Created UDPM config and private key files in dir:", udpm_path)
+func InitPPMT() {
+	ppmt_path, _ := createPPMTConfig()
+	WriteKeyToDisk(GenerateRandomKey(), filepath.Join(ppmt_path, "id_rsa"))
+	fmt.Println("Created peppermint config and private key files in dir:", ppmt_path)
 }
 
 type MessangerConfig struct {
-	Name       string
 	Users      []RecipientConfig
 	PrivateKey *rsa.PrivateKey
-	Port       string
 	URL        string
 }
 
 type RecipientConfig struct {
-	Host string
-	Port string
 	Key  string
 	Name string
 }
@@ -74,6 +70,5 @@ func ParseConfigWithViper(group string) *MessangerConfig {
 	CheckErrFatal(err)
 	key := ReadExistingKey(keyFile)
 	group_config.PrivateKey = key
-	group_config.Port = viper.GetString("listen.internal_port")
 	return &group_config
 }

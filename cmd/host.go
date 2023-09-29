@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/andrew-candela/udpm/internal"
+	"github.com/andrew-candela/peppermint/internal"
 	"github.com/spf13/cobra"
 )
 
@@ -15,6 +15,6 @@ var hostCommand = &cobra.Command{
 	Long:  "Host a webserver that forwards messages via a websocket connection to group members.",
 	Run: func(cmd *cobra.Command, args []string) {
 		config := internal.ParseConfigWithViper(group)
-		internal.MessageEntrypoint(internal.WEB, internal.HOST, config)
+		internal.MessageEntrypoint(internal.HOST, config)
 	},
 }

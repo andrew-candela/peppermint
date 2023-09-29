@@ -2,18 +2,7 @@
 
 title = "Example message config"
 
-private_key_file = "YOUR_HOME_DIRECTORY_GOES_HERE/.udpm/udpm_id_rsa"
-
-# The 'listen' table configures where your machine will be
-# listening for messages in UDP mode.
-
-[listen]
-# Others will have to reach you at the external host:port
-external_host = "something.example.com"
-external_port = "1053"
-# This is the location of your machine on your internal network
-internal_host = "10.0.0.176"
-internal_port = "1053"
+private_key_file = "YOUR_HOME_DIRECTORY_GOES_HERE/.peppermint/id_rsa"
 
 # Configure each group below. Groups must have unique identifiers
 
@@ -22,11 +11,8 @@ internal_port = "1053"
 name = "Group One"
 url = "your_host.goes_here.com"
 [[group_one.users]]
-host = "10.0.0.176"
-port = "1053"
 key = "some_key"
 [[group_one.users]]
-host = "aim.andrewcandela.com:1053"
 key = "some_other_key"
 
 # Choosing produce -g group_two will send messages to one recipient
@@ -35,8 +21,6 @@ name = "Group Two"
 url = "another_host.or_it_could_be_the_same.goes_here.com"
 [[group_two.users]]
 name = "Andy"
-host = "10.0.0.176"
-port = "1053"
 key = '''
 -----BEGIN RSA PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0eirTqkgbT6y6wV8T6x+
@@ -50,8 +34,6 @@ OkqezsLzGytxrzdRpFmaIVYPQh4PeAtGbLMWtFUhOOa2cS1e4gyBHE5mD0cqXOoZ
 '''
 [[group_two.users]]
 name = "Bill"
-host = "10.0.0.176"
-port = "1055"
 key = '''
 -----BEGIN RSA PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0eirTqkgbT6y6wV8T6x+
