@@ -28,7 +28,7 @@ func TestConfigTransport(t *testing.T) {
 	}
 	message := Message{
 		content:    []byte("Hello"),
-		public_key: messanger.public_key,
+		public_key: PublicKeyToBytes(&messanger.private_key.PublicKey),
 	}
 	message.Sign(messanger.private_key)
 	message.Encrypt(&recip_private_key.PublicKey)

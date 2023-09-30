@@ -47,6 +47,7 @@ type MessangerConfig struct {
 	Users      []RecipientConfig
 	PrivateKey *rsa.PrivateKey
 	URL        string
+	Port       string
 }
 
 type RecipientConfig struct {
@@ -54,19 +55,23 @@ type RecipientConfig struct {
 	Name string
 }
 
-func ParseConfigWithViper(group string) *MessangerConfig {
-	var group_config MessangerConfig
-	err := viper.ReadInConfig()
-	if err != nil {
+// Parse the config with Viper and handle errors
+func ParseConfig() {
+	if err := viper.ReadInConfig(); err != nil {
 		fmt.Print(err)
 		os.Exit(1)
 	}
+}
+
+func ParseConfigWithViper(group string) *MessangerConfig {
+	var group_config MessangerConfig
+	ParseConfig()
 	keyFile := viper.GetString("private_key_file")
 	if keyFile == "" {
 		fmt.Print("Nil value for keyfile!\n")
 		os.Exit(1)
 	}
-	err = viper.UnmarshalKey(group, &group_config)
+	err := viper.UnmarshalKey(group, &group_config)
 	CheckErrFatal(err)
 	key := ReadExistingKey(keyFile)
 	group_config.PrivateKey = key

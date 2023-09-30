@@ -38,7 +38,6 @@ type Messanger struct {
 	recipients  []FriendDetail
 	wait_group  *sync.WaitGroup
 	private_key *rsa.PrivateKey
-	public_key  []byte
 	port        string
 	transport   MessageTransport
 	write_mutex *sync.Mutex
@@ -80,7 +79,8 @@ func (webt *WEBTransport) Reader() {
 			HEADER_PUBLIC_KEY: {pub_key_string},
 		},
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	connection, _, err := websocket.Dial(ctx, webt.host_url+"/subscribe", &options)
 	if err != nil {
@@ -89,41 +89,48 @@ func (webt *WEBTransport) Reader() {
 		os.Exit(1)
 	}
 	for {
-		message_type, message_bytes, err := connection.Read(context.Background())
-		if context.Canceled != nil {
-			fmt.Println(context.Canceled)
+		select {
+		case <-ctx.Done():
+			fmt.Println("Context cancelled by server... Exiting read loop")
+			return
+		default:
+			message_type, message_bytes, err := connection.Read(ctx)
+			if err != nil {
+				fmt.Println("error: could not read message from websocket conn: ", err)
+				return
+			}
+			if message_type != websocket.MessageBinary {
+				fmt.Println("error: could not read message of type: ", message_type.String())
+				continue
+			}
+			message, err := MessageFromBytes(message_bytes)
+			if err != nil {
+				fmt.Println("could not deserialize message...", err)
+				continue
+			}
+			err = message.Decrypt(webt.private_key)
+			if err != nil {
+				fmt.Println("Could not decrypt message: ", err)
+				continue
+			}
+			// if !message.VerifySignature() {
+			// 	fmt.Println("Could not verify signature of message. Skipping...")
+			// 	continue
+			// }
+			pub_key, err := ParsePublicKey(message.public_key)
+			if err != nil {
+				fmt.Println("Could not parse public key: ", err)
+				continue
+			}
+			pub_key_string := PublicKeyToString(pub_key)
+			friend, ok := friend_map[pub_key_string]
+			if !ok {
+				fmt.Println("Could not find friend associated with public key: ", pub_key_string)
+				continue
+			}
+			fmt.Printf("%v >\n", friend.name)
+			fmt.Println(string(message.content))
 		}
-		if err != nil {
-			fmt.Println("error: could not read message from websocket conn: ", err)
-			continue
-		}
-		if message_type != websocket.MessageBinary {
-			fmt.Println("error: could not read message of type: ", message_type.String())
-			continue
-		}
-		message, err := MessageFromBytes(message_bytes)
-		if err != nil {
-			fmt.Println("could not deserialize message...", err)
-			continue
-		}
-		err = message.Decrypt(webt.private_key)
-		if err != nil {
-			fmt.Println("Could not decrypt message: ", err)
-			continue
-		}
-		if !message.VerifySignature() {
-			fmt.Println("Could not verify signature of message. Skipping...")
-			continue
-		}
-		pub_key := ParsePublicKey(message.public_key)
-		pub_key_string := PublicKeyToString(pub_key)
-		friend, ok := friend_map[pub_key_string]
-		if !ok {
-			fmt.Println("Could not find friend associated with public key: ", pub_key_string)
-			continue
-		}
-		fmt.Printf("%v >\n", friend.name)
-		fmt.Println(string(message.content))
 	}
 
 }
@@ -149,9 +156,10 @@ func createFriendPubKeyMap(friend_list []FriendDetail) FriendDetailMap {
 
 // Publish a message by sending it to all the channels associated with recips
 func (ppmt *Messanger) Publish(message_text string) {
+	pub_key := EncodePublicKey(ppmt.private_key)
 	message := Message{
 		content:    []byte(message_text),
-		public_key: ppmt.public_key,
+		public_key: pub_key,
 	}
 	// sign the message with your private key then pass along to the channels
 	message.Sign(ppmt.private_key)
@@ -176,14 +184,10 @@ func (ppmt *Messanger) WriteLoop() {
 		if err != nil { // io.EOF
 			break
 		}
-		ppmt.Publish(line)
+		if line != "" {
+			ppmt.Publish(line)
+		}
 	}
-}
-
-// run the webserver to accept websocket connections
-func (ppmt *Messanger) HostWeb() {
-	server := NewChatServer()
-	server.Run(ppmt.port)
 }
 
 /*
@@ -240,8 +244,10 @@ func ConfigureMessanger(config *MessangerConfig) *Messanger {
 	var transport MessageTransport
 	write_mutex := &sync.Mutex{}
 	for _, recip := range config.Users {
+		pub_key, err := ParsePublicKey([]byte(recip.Key))
+		CheckErrFatal(err)
 		friends = append(friends, FriendDetail{
-			public_key:       ParsePublicKey([]byte(recip.Key)),
+			public_key:       pub_key,
 			message_channel:  make(chan Message),
 			inbound_messages: make(chan []byte),
 			name:             recip.Name,
@@ -259,6 +265,7 @@ func ConfigureMessanger(config *MessangerConfig) *Messanger {
 		private_key: config.PrivateKey,
 		transport:   transport,
 		write_mutex: write_mutex,
+		port:        config.Port,
 	}
 }
 

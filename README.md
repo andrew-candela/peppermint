@@ -38,3 +38,10 @@ A new, random AES key is generated for each message/recipient pair.
 The message content is encrypted with the AES key, and then the AES key
 is encrypted with the public key of the message recipient.
 
+
+## Where I'm at now
+
+I'm still working through
+  stopping the read loop gracefully when the server closes the connection
+  troubleshooting the messages. I think there was a blank or unparseable public key sometime
+  ``

@@ -72,7 +72,11 @@ func (message *Message) Decrypt(priv_key *rsa.PrivateKey) error {
 }
 
 func (message *Message) VerifySignature() bool {
-	pub_key := ParsePublicKey(message.public_key)
+	pub_key, err := ParsePublicKey(message.public_key)
+	if err != nil {
+		fmt.Println("Could not parse public key on the message: ", err)
+		return false
+	}
 	// fmt.Printf("Tyring to verify content: %v", string(message.content))
 	return RSAVerify(pub_key, message.content, message.signature)
 }

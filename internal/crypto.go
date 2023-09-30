@@ -147,21 +147,19 @@ func ReadExistingKey(keyFile string) *rsa.PrivateKey {
 	return key.(*rsa.PrivateKey)
 }
 
-// Returns a public RSA key from bytes.
-// This is the inverse of PublicKeyToBytes
-func ParsePublicKey(keyString []byte) *rsa.PublicKey {
+// Returns a public RSA key from a []byte representation
+// of a PEM encoded key.
+func ParsePublicKey(keyString []byte) (*rsa.PublicKey, error) {
 	pKeyBlock, _ := pem.Decode(keyString)
 	if pKeyBlock == nil {
-		fmt.Println("Error in pem.Decode, keyblock is nil...")
-		panic("Oops")
+		return nil, fmt.Errorf("error in pem.Decode, keyblock is nil")
 	}
-	pubKeyInterface, err_two := x509.ParsePKIXPublicKey(pKeyBlock.Bytes)
-	if err_two != nil {
-		fmt.Println("Error in x509.ParsePKIXPublicKey...", err_two)
-		panic(err_two)
+	pubKeyInterface, err := x509.ParsePKIXPublicKey(pKeyBlock.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("error in x509.ParsePKIXPublicKey... %w", err)
 	}
 	pubKey := pubKeyInterface.(*rsa.PublicKey)
-	return pubKey
+	return pubKey, nil
 }
 
 func WriteKeyToDisk(key *rsa.PrivateKey, fileName string) {
@@ -179,6 +177,7 @@ func WriteKeyToDisk(key *rsa.PrivateKey, fileName string) {
 }
 
 // Produces the public key bytearray from the given private key
+// Produces a PEM encoded representation of the Public Key
 func EncodePublicKey(key *rsa.PrivateKey) []byte {
 	pubKey := key.PublicKey
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(&pubKey)
@@ -213,12 +212,23 @@ func GenerateRandomKey() *rsa.PrivateKey {
 	return k
 }
 
-// Converts a public RSA key into bytes.
-// This is the inverse of ParsePublicKey.
+// Converts a public RSA key into []byte serializing with x509.MarshalPKIXPublicKey().
+// This is the inverse of BytesToPublicKey.
 func PublicKeyToBytes(key *rsa.PublicKey) []byte {
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(key)
 	CheckErrFatal(err)
 	return pubKeyBytes
+}
+
+// Converts a public RSA serialized as []byte back into *rsa.PublicKey.
+// This is the inverse of PublicKeyToBytes.
+// Uses x509.ParsePKIXPublicKey()
+func BytesToPublicKey(key_bytes []byte) (*rsa.PublicKey, error) {
+	pub_key, err := x509.ParsePKIXPublicKey(key_bytes)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse Bytes into Public Key...%w", err)
+	}
+	return pub_key.(*rsa.PublicKey), nil
 }
 
 // Returns the x509 format with newlines removed

@@ -56,3 +56,14 @@ func TestRSAEncrypt(t *testing.T) {
 		t.Errorf("%v != %v", decrypted_text, clear_text)
 	}
 }
+
+func TestPublicKeyEncode(t *testing.T) {
+	key := GenerateRandomKey()
+	pub_key_rsa := key.PublicKey
+	pub_bytes := PublicKeyToBytes(&pub_key_rsa)
+	parsed_pub_key, err := BytesToPublicKey(pub_bytes)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(parsed_pub_key)
+}

@@ -54,10 +54,11 @@ func NewChatServer() *ChatServer {
 // subscribeHandler accepts the WebSocket connection and then subscribes
 // it to all future messages.
 func (cs *ChatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("got a request!")
 	pub_key := r.Header.Get(HEADER_PUBLIC_KEY)
 	c, err := websocket.Accept(w, r, nil)
 	if err != nil {
-		fmt.Printf("could not accept websocket connection %v, %v", err, r.Referer())
+		fmt.Printf("could not accept websocket connection %v, %v", err, r.UserAgent())
 		return
 	}
 	defer c.Close(websocket.StatusInternalError, "")
@@ -155,9 +156,19 @@ func (cs *ChatServer) deleteSubscriber(pub_key string) {
 }
 
 func (cs *ChatServer) Run(port string) {
+	fmt.Println("Listening on port: ", port)
 	err := http.ListenAndServe(fmt.Sprintf(":%s", port), &cs.serve_mux)
 	if err != nil {
 		fmt.Printf("Error serving app: %v\n", err)
 	}
 	os.Exit(1)
+}
+
+// run the webserver to accept websocket connections
+func HostWeb(port string) {
+	if port == "" {
+		port = "80"
+	}
+	server := NewChatServer()
+	server.Run(port)
 }
