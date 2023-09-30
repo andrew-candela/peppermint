@@ -3,7 +3,7 @@
 
 This CLI tool provides a mechanism to communicate with other folks over the internet.
 
-PPMT users can organize themselves and their contacts into groups.
+PPMT users can organize themselves and their contacts into Groups.
 Groups are like channels in slack.
 A message sent to the group is seen by all group members.
 
@@ -39,9 +39,8 @@ The message content is encrypted with the AES key, and then the AES key
 is encrypted with the public key of the message recipient.
 
 
-## Where I'm at now
+## TODO
 
-I'm still working through
-  stopping the read loop gracefully when the server closes the connection
-  troubleshooting the messages. I think there was a blank or unparseable public key sometime
-  ``
+- create authentication mechanism for server
+- make a demo video
+- clean up message output in read loop
