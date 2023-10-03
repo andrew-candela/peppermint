@@ -10,6 +10,8 @@ package internal
 
 import (
 	"context"
+	"crypto/rsa"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -44,9 +46,8 @@ func NewChatServer() *ChatServer {
 	cs := ChatServer{
 		subscribers: map[string]Subscriber{},
 	}
-	cs.serve_mux.HandleFunc("/subscribe", cs.subscribeHandler)
-	cs.serve_mux.HandleFunc("/publish", cs.publishHandler)
-	cs.serve_mux.HandleFunc("/", cs.echoHandler)
+	cs.serve_mux.HandleFunc("/subscribe", cs.authenticateRequest(cs.subscribeHandler))
+	cs.serve_mux.HandleFunc("/publish", cs.authenticateRequest(cs.publishHandler))
 
 	return &cs
 }
@@ -76,12 +77,6 @@ func (cs *ChatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("%v", err)
 		return
 	}
-}
-
-func (cs *ChatServer) echoHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Println("Got Something!")
-	fmt.Fprintln(w, "Got something!")
 }
 
 // A message is published by posting the body to the /publish endpoint
@@ -171,4 +166,43 @@ func HostWeb(port string) {
 	}
 	server := NewChatServer()
 	server.Run(port)
+}
+
+func GenerateRequestAuthHeaders(key *rsa.PrivateKey) *http.Header {
+	signature, token := CreateSignature(key)
+	headers := http.Header{}
+	headers.Add(HEADER_SIGNATURE_VALUE, signature)
+	headers.Add(HEADER_SIGNATURE_TOKEN, token)
+	headers.Add(HEADER_PUBLIC_KEY, PublicKeyToString(&key.PublicKey))
+	return &headers
+}
+
+func (cs *ChatServer) authenticateRequest(endpoint func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		signed_text, err := hex.DecodeString(r.Header.Get(HEADER_SIGNATURE_TOKEN))
+		if err != nil {
+			fmt.Println(err)
+			err_string := fmt.Sprintf("could not decode signed text from header: %v", err)
+			http.Error(w, err_string, http.StatusBadRequest)
+		}
+		signature, err := hex.DecodeString(r.Header.Get(HEADER_SIGNATURE_VALUE))
+		if err != nil {
+			fmt.Println(err)
+			err_string := fmt.Sprintf("could not decode signature from header: %v", err)
+			http.Error(w, err_string, http.StatusBadGateway)
+		}
+		pub_key_str := r.Header.Get(HEADER_PUBLIC_KEY)
+		pub_key, err := PublicKeyFromString(pub_key_str)
+		if err != nil {
+			http.Error(w, "Could not parse public key from header...", http.StatusInternalServerError)
+			return
+		}
+		verified := RSAVerify(pub_key, []byte(signed_text), []byte(signature))
+		if !verified {
+			fmt.Printf("Unable to verify request from IP: %v\n", r.RemoteAddr)
+			http.Error(w, "signature mismatch", http.StatusFailedDependency)
+			return
+		}
+		endpoint(w, r)
+	}
 }
