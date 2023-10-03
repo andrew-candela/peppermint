@@ -57,7 +57,11 @@ func (webt *WEBTransport) Writer(friend *FriendDetail, content []byte) error {
 	if err != nil {
 		return fmt.Errorf("problem constructing publish request... %w", err)
 	}
+	sig, token := CreateSignature(webt.private_key)
 	req.Header.Set(HEADER_TARGET_PUBLIC_KEY, PublicKeyToString(friend.public_key))
+	req.Header.Set(HEADER_SIGNATURE_TOKEN, token)
+	req.Header.Set(HEADER_SIGNATURE_VALUE, sig)
+	req.Header.Set(HEADER_PUBLIC_KEY, PublicKeyToString(&webt.private_key.PublicKey))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("problem performing publish request... %w", err)
@@ -73,12 +77,8 @@ func (webt *WEBTransport) Writer(friend *FriendDetail, content []byte) error {
 // Read incoming messages from the websocket connection
 func (webt *WEBTransport) Reader() {
 	friend_map := createFriendPubKeyMap(webt.friends)
-	pub_key_string := PublicKeyToString(&webt.private_key.PublicKey)
-	options := websocket.DialOptions{
-		HTTPHeader: map[string][]string{
-			HEADER_PUBLIC_KEY: {pub_key_string},
-		},
-	}
+	headers := GenerateRequestAuthHeaders(webt.private_key)
+	options := websocket.DialOptions{HTTPHeader: *headers}
 	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -128,8 +128,10 @@ func (webt *WEBTransport) Reader() {
 				fmt.Println("Could not find friend associated with public key: ", pub_key_string)
 				continue
 			}
+			fmt.Println("---------------------------------")
 			fmt.Printf("%v >\n", friend.name)
 			fmt.Println(string(message.content))
+			fmt.Println()
 		}
 	}
 

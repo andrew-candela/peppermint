@@ -41,6 +41,5 @@ is encrypted with the public key of the message recipient.
 
 ## TODO
 
-- create authentication mechanism for server
 - make a demo video
 - clean up message output in read loop

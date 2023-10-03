@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -231,16 +230,31 @@ func BytesToPublicKey(key_bytes []byte) (*rsa.PublicKey, error) {
 	return pub_key.(*rsa.PublicKey), nil
 }
 
-// Returns the x509 format with newlines removed
+// Returns the x509 format encoded with hex as a string
 func PublicKeyToString(key *rsa.PublicKey) string {
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(key)
 	CheckErrFatal(err)
-	pemData := pem.EncodeToMemory(
-		&pem.Block{
-			Type:  "RSA PUBLIC KEY",
-			Bytes: pubKeyBytes,
-		},
-	)
-	pemString := strings.ReplaceAll(string(pemData), "\n", "")
-	return pemString
+	return hex.EncodeToString(pubKeyBytes)
+}
+
+// Parses a string that is assumed to be a hex encoded []byte produced
+// by x509 encoding a public key.
+func PublicKeyFromString(key_string string) (*rsa.PublicKey, error) {
+	pub_key_bytes, err := hex.DecodeString(key_string)
+	if err != nil {
+		return nil, fmt.Errorf("could not hex decode the given string...%w", err)
+	}
+	return BytesToPublicKey(pub_key_bytes)
+}
+
+// Creates a random string and then signs it.
+// Returns two strings which are []byte's that were Hex encoded
+func CreateSignature(key *rsa.PrivateKey) (string, string) {
+	token := make([]byte, 64)
+	_, _ = rand.Reader.Read(token)
+	signed, err := RSASign(key, token)
+	if err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(signed), hex.EncodeToString(token)
 }
