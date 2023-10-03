@@ -1,6 +1,8 @@
 
 # Peppermint - Peer to Peer Messaging in a Terminal
 
+![Example](example.png)
+
 This CLI tool provides a mechanism to communicate with other folks over the internet.
 
 PPMT users can organize themselves and their contacts into Groups.
