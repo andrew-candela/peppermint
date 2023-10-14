@@ -13,6 +13,6 @@ var testCommand = &cobra.Command{
 	Use:   "test",
 	Short: "do something custom - runs test.go",
 	Run: func(cmd *cobra.Command, args []string) {
-		internal.RunTestCommand()
+		internal.RunTestFormatting()
 	},
 }

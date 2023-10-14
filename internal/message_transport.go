@@ -128,9 +128,8 @@ func (webt *WEBTransport) Reader() {
 				fmt.Println("Could not find friend associated with public key: ", pub_key_string)
 				continue
 			}
-			fmt.Println("---------------------------------")
-			fmt.Printf("%v >\n", friend.name)
-			fmt.Println(string(message.content))
+			PrintLeftJustifiedMessage(friend.name)
+			PrintLeftJustifiedMessage(string(message.content))
 			fmt.Println()
 		}
 	}
