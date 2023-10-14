@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -26,4 +27,11 @@ func RunTestCommand() {
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+func RunTestFormatting() {
+	message := strings.Repeat("hi this is a long message with no newline", 3)
+	PrintLeftJustifiedMessage(message)
+	fmt.Println("")
+	PrintRightJustifiedMessage(message)
 }
