@@ -76,6 +76,7 @@ func (webt *WEBTransport) Writer(friend *FriendDetail, content []byte) error {
 
 // Read incoming messages from the websocket connection
 func (webt *WEBTransport) Reader() {
+	self_public_key := PublicKeyToString(&webt.private_key.PublicKey)
 	friend_map := createFriendPubKeyMap(webt.friends)
 	headers := GenerateRequestAuthHeaders(webt.private_key)
 	options := websocket.DialOptions{HTTPHeader: *headers}
@@ -123,6 +124,12 @@ func (webt *WEBTransport) Reader() {
 				continue
 			}
 			pub_key_string := PublicKeyToString(pub_key)
+			// this message came from yourself, so print it right justified
+			if self_public_key == pub_key_string {
+				PrintRightJustifiedMessage(string(message.content))
+				fmt.Println()
+				continue
+			}
 			friend, ok := friend_map[pub_key_string]
 			if !ok {
 				fmt.Println("Could not find friend associated with public key: ", pub_key_string)
@@ -254,6 +261,13 @@ func ConfigureMessanger(config *MessangerConfig) *Messanger {
 			name:             recip.Name,
 		})
 	}
+	// Add yourself
+	friends = append(friends, FriendDetail{
+		public_key:       &config.PrivateKey.PublicKey,
+		message_channel:  make(chan Message),
+		inbound_messages: make(chan []byte),
+		name:             "Yourself",
+	})
 	transport = &WEBTransport{
 		friends:     friends,
 		host_url:    config.URL,
