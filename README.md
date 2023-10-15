@@ -13,6 +13,15 @@ In order to facilitate messaging, someone must make a PPMT server available.
 Clients subscribe to a group by initiating a websocket connection with the server.
 Anyone on a network capable of accepting inbound connections can host a PPMT server.
 
+## Install
+
+Peppermint is an executable file with no dependencies.
+Download the binary for your system from the
+[releases](https://github.com/andrew-candela/peppermint/releases) page.
+
+Then, unpack the tarbal (`tar -xf peppermint_release.tar.gz` on unix-like systems)
+and move the binary to somewhere in your system's PATH.
+
 ## Usage
 
 ```bash
@@ -39,9 +48,3 @@ PPMT uses hybrid encryption.
 A new, random AES key is generated for each message/recipient pair.
 The message content is encrypted with the AES key, and then the AES key
 is encrypted with the public key of the message recipient.
-
-
-## TODO
-
-- make a demo video
-- clean up message output in read loop
