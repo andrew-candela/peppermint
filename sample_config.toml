@@ -7,9 +7,7 @@ port = "80"
 
 # Configure each group below. Groups must have unique identifiers
 
-# Choosing produce -g group_one will send messages to two recipients
 [group_one]
-name = "Group One"
 
 url = "http://your_host.goes_here.com:80"
 [[group_one.users]]
@@ -17,9 +15,8 @@ key = "some_key"
 [[group_one.users]]
 key = "some_other_key"
 
-# Choosing produce -g group_two will send messages to one recipient
+
 [group_two]
-name = "Group Two"
 url = "http://another_host.or_it_could_be_the_same.goes_here.com:8081"
 [[group_two.users]]
 name = "Andy"
