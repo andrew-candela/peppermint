@@ -7,6 +7,7 @@ package internal
 
 import (
 	"crypto/rsa"
+	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,8 +17,11 @@ import (
 
 const SAMPLE_CONFIG_FILE string = "sample_config.toml"
 
-func copySampleConfigFile(example_config_path string, out_path string) {
-	config_file_contents, err := os.ReadFile(example_config_path)
+//go:embed sample_config.toml
+var sample_config embed.FS
+
+func copySampleConfigFile(out_path string) {
+	config_file_contents, err := sample_config.ReadFile(SAMPLE_CONFIG_FILE)
 	CheckErrFatal(err)
 	err = os.WriteFile(out_path, config_file_contents, os.ModePerm)
 	CheckErrFatal(err)
@@ -32,7 +36,7 @@ func createPPMTConfig() (string, string) {
 	ppmt_config := filepath.Join(ppmt_path, "config")
 	err = os.MkdirAll(ppmt_path, os.ModePerm)
 	CheckErrFatal(err)
-	copySampleConfigFile(SAMPLE_CONFIG_FILE, ppmt_config)
+	copySampleConfigFile(ppmt_config)
 	return ppmt_path, ppmt_config
 }
 
