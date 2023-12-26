@@ -17,6 +17,7 @@ var writeCommand = &cobra.Command{
 	Each message is signed, encrypted and then sent to its
 	intended recipient.
 	`,
+	PreRun: configureLogger,
 	Run: func(cmd *cobra.Command, args []string) {
 		config := internal.ParseConfigWithViper(group)
 		internal.MessageEntrypoint(internal.WRITE, config)

@@ -13,6 +13,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"sync"
@@ -219,6 +220,18 @@ func IncomingMessageHandler(friend FriendDetail, write_mutex *sync.Mutex, privat
 		CheckErrFatal(err)
 		if !gram.expect_more {
 			message, err := MessageFromBytes(gram_content_buffer)
+			if CheckDebug() {
+				write_mutex.Lock()
+				slog.Debug(
+					"Received message",
+					"message.content", message.content,
+					"message.signature", message.signature,
+					"message.aes_key", message.aes_key,
+					"message.public_key", message.public_key,
+					"recipient_public_key", private_key.PublicKey,
+				)
+				write_mutex.Unlock()
+			}
 			CheckErrFatal(err)
 			err = message.Decrypt(private_key)
 			CheckErrFatal(err)
@@ -300,6 +313,18 @@ func sendAndReport(wg *sync.WaitGroup, friend *FriendDetail, transport MessageTr
 		serialized_message := message.Serialize()
 		err := transport.Writer(friend, serialized_message)
 		write_mutex.Lock()
+		if CheckDebug() {
+			slog.Debug(
+				"Sending serialized message.",
+				"message_bytes", serialized_message,
+				"message.content", message.content,
+				"message.signature", message.signature,
+				"message.aes_key", message.aes_key,
+				"message.public_key", message.public_key,
+				"recipient", friend.name,
+				"recipient_public_key", PublicKeyToBytes(friend.public_key),
+			)
+		}
 		if err != nil {
 			fmt.Println("Could not send message to", friend.name, "...", err, X_MARK)
 		} else {

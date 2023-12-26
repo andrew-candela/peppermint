@@ -81,3 +81,9 @@ func ParseConfigWithViper(group string) *MessangerConfig {
 	group_config.PrivateKey = key
 	return &group_config
 }
+
+// Checks to see if --verbose is set by the user
+// by checking the 'verbose' viper setting
+func CheckDebug() bool {
+	return viper.GetBool("verbose")
+}

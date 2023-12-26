@@ -10,8 +10,9 @@ func init() {
 }
 
 var testCommand = &cobra.Command{
-	Use:   "test",
-	Short: "do something custom - runs test.go",
+	Use:    "test",
+	Short:  "do something custom - runs test.go",
+	PreRun: configureLogger,
 	Run: func(cmd *cobra.Command, args []string) {
 		internal.RunTestFormatting()
 	},

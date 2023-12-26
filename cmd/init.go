@@ -11,6 +11,7 @@ var initCmd = &cobra.Command{
 	Long: `Creates the ~/.peppermint/ directory, with a few files:
 	config: a toml file
 	peppermint_id_rsa: a randomly generated RSA private key file in PKCS #1, ASN.1 DER form.`,
+	PreRun: configureLogger,
 	Run: func(cmd *cobra.Command, args []string) {
 		internal.InitPPMT()
 	},
