@@ -23,6 +23,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCMD.PersistentFlags().StringVarP(&group, "group", "g", "", "Group Name to listen or write to")
+	rootCMD.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Print detailed logs for debugging")
 }
 
 // Sets up where Viper will look for the config file

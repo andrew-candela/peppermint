@@ -16,6 +16,7 @@ var readCommand = &cobra.Command{
 	Listens for messages sent to the specified group.
 	Prints the group messages into stdOut.
 	`,
+	PreRun: configureLogger,
 	Run: func(cmd *cobra.Command, args []string) {
 		config := internal.ParseConfigWithViper(group)
 		internal.MessageEntrypoint(internal.READ, config)
